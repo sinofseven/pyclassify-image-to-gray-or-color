@@ -24,6 +24,8 @@ def test_pure_gray_image_is_classified_as_gray(save_image, make_gray_array):
     assert isinstance(result.cr_center, float)
     assert result.cb_center == pytest.approx(128.0, abs=1.0)
     assert result.cr_center == pytest.approx(128.0, abs=1.0)
+    # 中央値がニュートラルなので center_chroma はほぼ 0 → 一様単色判定も発火しない
+    assert result.center_chroma == pytest.approx(0.0, abs=1.0)
 
 
 def test_gray_background_with_color_patch_is_classified_as_color(
@@ -40,16 +42,41 @@ def test_gray_background_with_color_patch_is_classified_as_color(
     assert result.strong_color_ratio > 0.0
 
 
-def test_uniform_color_fill_is_not_color_due_to_median_subtraction(
+def test_uniform_color_fill_is_classified_as_color_via_center_chroma(
     save_image, make_gray_array
 ):
-    """一様に塗りつぶした色は中央値減算で chroma が 0 になり color にならない。"""
+    """一様に塗りつぶした彩度の高い色は center_chroma 経由で color と判定される。
+
+    中央値減算では chroma が全画素 0 になり「ばらつき」では検出できない
+    (color_ratio == 0)。代わりに中央値そのものがニュートラルから離れている
+    (center_chroma が大きい)ことで color と判定する。
+    """
     # 全面を彩度の高い赤で塗る(R=G=B ではないが一様)
     arr = make_gray_array()
     arr[:, :] = (220, 30, 30)
     path = save_image(arr)
 
     result = classify_gray_or_color(path)
+
+    assert result.is_color is True
+    # ばらつきは無いので color_ratio は依然 0、判定は center_chroma 経由
+    assert result.color_ratio == 0.0
+    assert result.reason.startswith("uniform color detected")
+    assert result.center_chroma is not None
+    assert result.center_chroma >= 5.0
+
+
+def test_uniform_color_with_high_center_chroma_threshold_is_gray(
+    save_image, make_gray_array
+):
+    """center_chroma_threshold を極端に大きくすると一様な赤も gray になる。"""
+    arr = make_gray_array()
+    arr[:, :] = (220, 30, 30)
+    path = save_image(arr)
+
+    assert classify_gray_or_color(path).is_color is True
+
+    result = classify_gray_or_color(path, center_chroma_threshold=200.0)
 
     assert result.is_color is False
     assert result.color_ratio == 0.0
