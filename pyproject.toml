@@ -23,6 +23,9 @@ dev = [
     "pytest>=9.1.0",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]
+
 [tool.isort]
 profile = "black"
 
