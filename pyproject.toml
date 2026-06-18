@@ -4,4 +4,27 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "numpy>=2.4.6",
+    "pillow>=12.2.0",
+]
+
+[project.urls]
+Repository = "https://github.com/sinofseven/pyclassify-image-to-gray-or-color"
+
+[build-system]
+requires = ["uv_build>=0.11.21,<0.12"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+    "isort>=8.0.1",
+    "pytest>=9.1.0",
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+target-version = ["py314"]
